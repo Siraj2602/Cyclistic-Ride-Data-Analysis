@@ -1,0 +1,277 @@
+---
+title: "Data Analytics Capstone Project" 
+subtitle: " Case Study - Cyclistic Trends"
+author: "Sirajahamed"
+date: '2022-08-10'
+output: html_document
+---
+
+### Introduction
+
+For the capstone project of the Google Data Analytics, I have opted for the Cyclistic bike share data. In this case study, I will perform analytical tasks ,that I will be doing in the real world, as a junior data analyst for the marketing team at company called Cyclistic, a fictional bike-share company.
+To answer key questions of the case study, I go through the six steps of the data analysis process : 
+
+* Ask
+* Prepare
+* Process
+* Analyze
+* Share
+* Act
+
+### Problem Scenario
+
+Cyclistic bike share has two variants of riders namely casual and membership riders. The director of marketing of Cyclistic, Lily Moreno, wants to increase the company's future growth and beleives that it can be acheived by maximizing the conversion casual riders into members. So the analyst team is trying to understand how casual riders and membership riders use Cyclistic differently.
+
+From the conclusions of above analytics we can design a new strategy to convert casual riders into members
+
+Among three major questions to be answered, I have been assigned by Moreno the following question:
+
+Q) How do annual members and casual riders use Cyclistic differently?
+
+
+### Ask Phase
+
+* Problem Statement
+
+Cyclistic business team have realised that membership riders are more profitable for the company, So they want the market analyst to design a market strategy to convert casual riders to members
+
+* Key Stakeholders
+
+1- Lily Moreno: My reporting manager and Director of Marketing
+
+2- Executive Team: This is the team which approves the recommendations made by us.
+
+### Prepare Phase
+
+Data Source: Accumulated data of original bike share data set of year 2021 from 01/01/2021 to 31/12/2021 obtained from [here](https://divvy-tripdata.s3.amazonaws.com/index.html). The data is made available and licensed by Motivate International Inc under [license](https://ride.divvybikes.com/data-license-agreement).
+
+Data Description:
+
+File Type: CSV format
+
+File Naming Convention: YYYYMM-divvy-tripdata.csv
+
+File Content: Each file has data with 13 attributes having information like ride id, rider type, ride start and ending times,source and destination etc. Number of rows vary in each file owing to different number of rides each month.
+
+Data Credibility:
+
+* The data set is reliable as it is from same organisation.
+* Data is original as it is from first party organisation.
+* Data is current because it has from the latest time.
+* Data is secure because the riders' personal information is hidden.
+
+### Process Phase
+
+I have used R for this analysis because it is easier to work with large data in R than other platforms like Sheets or Excel. Also R provides very good data visualization tools which makes life easier. R is better at organising, cleaning and analyzing data.
+
+### Analyze Phase
+
+#### Setting Up Environment with Libraries
+
+Following libraries have been used to read, organise, analyze and visualize data.
+
+```{r import_libraries, echo=TRUE, eval=TRUE}
+library(tidyverse)
+library(readr)
+library(dplyr)
+```
+
+#### Importing and Consolidating Dataset
+
+```{r reading_csv_data, echo=TRUE, eval=TRUE}
+dataset_01 <- read_csv("biker_dataset/202101-divvy-tripdata.csv")
+dataset_02 <- read_csv("biker_dataset/202102-divvy-tripdata.csv")
+dataset_03 <- read_csv("biker_dataset/202103-divvy-tripdata.csv")
+dataset_04 <- read_csv("biker_dataset/202104-divvy-tripdata.csv")
+dataset_05 <- read_csv("biker_dataset/202105-divvy-tripdata.csv")
+dataset_06 <- read_csv("biker_dataset/202106-divvy-tripdata.csv")
+dataset_07 <- read_csv("biker_dataset/202107-divvy-tripdata.csv")
+dataset_08 <- read_csv("biker_dataset/202108-divvy-tripdata.csv")
+dataset_09 <- read_csv("biker_dataset/202109-divvy-tripdata.csv")
+dataset_10 <- read_csv("biker_dataset/202110-divvy-tripdata.csv")
+dataset_11 <- read_csv("biker_dataset/202111-divvy-tripdata.csv")
+dataset_12 <- read_csv("biker_dataset/202112-divvy-tripdata.csv")
+
+```
+
+We need to combine these all file data into a single data set. Before that we should verify if individual data set has same column names. This is done by checking column names of each dataset
+
+```{r column_name_verification, echo=TRUE, eval=TRUE}
+colnames(dataset_01)
+colnames(dataset_02)
+colnames(dataset_03)
+colnames(dataset_04)
+colnames(dataset_05)
+colnames(dataset_06)
+colnames(dataset_07)
+colnames(dataset_08)
+colnames(dataset_09)
+colnames(dataset_10)
+colnames(dataset_11)
+colnames(dataset_12)
+
+```
+
+Now that we have verified the column names, we combine it into a single big dataset
+
+```{r combining_dataset, echo=TRUE, eval=TRUE}
+full_dataset <- bind_rows(dataset_01,dataset_02,dataset_03,
+                          dataset_04,dataset_05,dataset_06,
+                          dataset_07,dataset_08,dataset_09,
+                          dataset_10,dataset_11,dataset_12)
+str(full_dataset)
+```
+
+The description of full data set shows that it has 5,595,063 data points.
+
+
+#### Cleaning the Dataset for Analysis
+
+For the analysis, I have split the `started_at` column into date, month, day, year, day_of_week into new columns.
+
+The days of the week are represented by numbers from 1 to 7 for Monday to Sunday respectively.
+
+```{r creating new columns from date, echo=TRUE, eval=TRUE}
+full_dataset$date = as.Date(full_dataset$started_at)
+full_dataset$year = format(as.Date(full_dataset$date), "%Y")
+full_dataset$month = format(as.Date(full_dataset$date), "%m")
+full_dataset$day = format(as.Date(full_dataset$date), "%d")
+full_dataset$day_of_week = format(as.Date(full_dataset$date), "%u")
+full_dataset$hour = format(as.POSIXct(full_dataset$started_at, format="%m/%d/%Y %H:%M:%S"), "%H")
+
+```
+
+Calculate `ride_duration` for all the trips in seconds and minutes as two new columns `ride_duration` and `ride_duration_m` respectively
+
+```{r Add new column ride_duration}
+full_dataset$ride_duration = difftime(full_dataset$ended_at, full_dataset$started_at)
+
+full_dataset$ride_duration_m = (difftime(full_dataset$ended_at, full_dataset$started_at))/60
+```
+
+Since we need to make calculations we need to ensure that newly created columns are of numeric type
+
+```{r}
+full_dataset$ride_duration = as.numeric(full_dataset$ride_duration)
+full_dataset$ride_duration_m = as.numeric(full_dataset$ride_duration_m)
+full_dataset$day = as.numeric(full_dataset$day)
+full_dataset$month = as.numeric(full_dataset$month)
+```
+
+We need to make sure that the data we have is clean. We need to validate the values of the columns.
+
+```{r}
+#Check if ride_duration has any negative values
+sprintf("Number of data points with negative ride duration %d", sum(full_dataset$ride_duration <= 0)
+)
+
+# Shows that it has negative values. These data points need to be dropped as they are invalid.
+
+full_dataset_cleaned = full_dataset[!(full_dataset$ride_duration <= 0),]
+
+
+```
+
+#### Analysis Step 1: Analysis of Ride Duration
+
+We do statistical analysis of ride duration to find trends.
+
+```{r}
+full_dataset_cleaned %>% 
+  summarise(max_duration = max(ride_duration_m),
+            min_duration = min(ride_duration_m),
+            mean_duration = mean(ride_duration_m))
+
+```
+
+The average ride duration for full dataset is 21.93 minutes.
+
+* So this indicates that many of the users are using the bikes for short distance travel.
+
+Then we see which days the bikes are used the most. Is it weekdays or the weekends? If weekdays then which days?
+
+```{r Plot the usage of bike with day_of_week, echo=TRUE, eval=TRUE, error=TRUE}
+
+full_dataset_cleaned %>% 
+  group_by(day_of_week) %>% 
+  summarize(no_of_rides = n()) %>%
+  ggplot() + 
+  geom_col(mapping = aes(x = day_of_week, y = no_of_rides), , size = 1.5, color = "darkblue", fill = "white") + 
+  geom_line(mapping = aes(x = day_of_week, y = no_of_rides), , size = 1.5, color = "red", group = 1) +
+  labs(title="Number of rides on each day of the week" , x="Days of Week", y="Number of Rides") + theme(plot.title=element_text(size=17), )
+```
+
+* The trend in the above graph shows that number of rides on the week days is around 750000 but peeks around the weekends.
+
+
+Next, we see the analysis of ride duration over the days of the weeks for each type of riders.
+
+```{r}
+full_dataset_cleaned %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(no_of_rides = n(),
+            average_ride_duration = mean(ride_duration_m)) %>% 
+  ggplot(aes(x = day_of_week, y = average_ride_duration, fill=member_casual)) + geom_col(position = "dodge") +
+  labs(title="Comparision of Average Ride Duration" , x="Days of Week", y="Average Ride Duration") +
+  theme(plot.title=element_text(size=17), legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+```
+```{r}
+full_dataset_cleaned %>% 
+  group_by(member_casual) %>% 
+  summarise(no_of_rides = n(),
+            average_ride_duration = mean(ride_duration_m))
+```
+
+
+This above plot shows that casual riders rent bike for longer duration than member riders especially on weekends and Monday. On an average casual and members rent the bikes for 32 to 13.6 minutes respectively.
+
+This shows some trend that members commute in the nearby areas frequently to their work place, etc. But casual riders are renting for longer duration may be using to visit some far off places, working out, touring the city etc.
+
+But we need to see which type of riders are using the bikes more to know which rider types make the profit for the company.
+
+```{r}
+full_dataset_cleaned %>% 
+  group_by(member_casual) %>% 
+  summarise(number_of_users=n()) %>% 
+  ggplot(mapping = aes(x=member_casual, y=number_of_users, fill=member_casual)) + geom_col(width = 0.3)
+```
+
+
+We see above that more than half of riders are members.
+
+So lets try to see at what times the member riders use the bikes more often.
+
+#### Analysis Step 2: Timings of the rides of members
+
+```{r}
+member_dataset = filter(full_dataset_cleaned, member_casual == "member")
+
+plot_list = list()
+i = 1
+days_of_week = unique(member_dataset$day_of_week)
+for(x in days_of_week[order(days_of_week)]){
+  plot_list[[i]] = member_dataset %>% filter(day_of_week == x) %>% group_by(hour) %>% summarize(number_of_rides = n()) %>%
+                         ggplot(aes(x=hour, y=number_of_rides, fill=hour)) + geom_col(width = 0.25) + 
+    labs(title=paste("Comparision of Number of Rides for Day ", as.character(x))  , x="Hour of Day", y="Number of rides") +
+  theme(plot.title=element_text(size=17), legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+  
+  i = i+1
+
+}
+                       
+plot_list[[1]]
+plot_list[[2]]
+plot_list[[3]]
+plot_list[[4]]
+plot_list[[5]]
+plot_list[[6]]
+plot_list[[7]]
+
+```
+
+We can see in the above plots that number of rides during the day for weekends(Saturday and Sunday) are similar from the morning till the evening which means people are using rides constantly as they are free.
+
+But the trends in the weekdays show that the use of rides at morning between 6 to 8 and again between 4 to 7. This shows that most of the members are using the bikes for their jobs commute with a regular timings in the day.
+
+We can control the prices for during these times to gain better profit as they commute daily during these hours.
+
